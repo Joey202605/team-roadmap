@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地址智能与路径规划 - 部门能力地图 & 演进路线</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #fff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --accent: #2563eb;
+    --l1: #ef4444;
+    --l2: #f97316;
+    --l3: #eab308;
+    --l4: #22c55e;
+    --l5: #06b6d4;
+    --p0: #dc2626;
+    --p1: #f59e0b;
+    --p2: #6b7280;
+    --p3: #9ca3af;
+    --border: #e5e7eb;
+    --shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 14px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 60px 20px 50px; background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #3b82f6 100%); color: #fff; border-radius: 16px; margin-bottom: 40px; }
+  .hero h1 { font-size: 32px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px; }
+  .hero .subtitle { font-size: 16px; opacity: .85; max-width: 700px; margin: 0 auto; }
+  .hero .badge-row { margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero .badge { background: rgba(255,255,255,.15); backdrop-filter: blur(4px); padding: 6px 16px; border-radius: 20px; font-size: 13px; }
+
+  /* Section */
+  .section { background: var(--card); border-radius: 14px; padding: 36px; margin-bottom: 32px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .section h2 { font-size: 22px; margin-bottom: 8px; color: #1e3a5f; }
+  .section .desc { color: var(--text-secondary); margin-bottom: 24px; font-size: 14px; }
+
+  /* Stage Map */
+  .stage-map { display: flex; gap: 16px; align-items: stretch; margin-top: 20px; }
+  .stage-card { flex: 1; border-radius: 12px; padding: 24px 18px; border: 2px solid var(--border); position: relative; }
+  .stage-card.active { border-color: var(--accent); background: #eff6ff; }
+  .stage-card .stage-num { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 6px; }
+  .stage-card .stage-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .stage-card .stage-list { font-size: 12px; color: var(--text-secondary); list-style: none; }
+  .stage-card .stage-list li { padding: 2px 0; }
+  .stage-card .stage-list li::before { content: "· "; color: var(--accent); }
+  .stage-arrow { display: flex; align-items: center; font-size: 24px; color: var(--accent); flex-shrink: 0; }
+  .stage-label { position: absolute; top: -12px; right: 12px; background: var(--accent); color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+
+  /* Level Legend */
+  .legend-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dot.l1 { background: var(--l1); }
+  .legend-dot.l2 { background: var(--l2); }
+  .legend-dot.l3 { background: var(--l3); }
+  .legend-dot.l4 { background: var(--l4); }
+  .legend-dot.l5 { background: var(--l5); }
+
+  /* Capability Table */
+  .cap-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+  .cap-table th { background: #f8fafc; padding: 12px 14px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 12px; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
+  .cap-table td { padding: 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .cap-table tr:hover td { background: #fafbfc; }
+  .domain-header td { background: #f1f5f9 !important; font-weight: 700; font-size: 14px; color: #1e3a5f; padding: 14px; }
+
+  .level-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; color: #fff; }
+  .level-badge.l1 { background: var(--l1); }
+  .level-badge.l2 { background: var(--l2); }
+  .level-badge.l3 { background: var(--l3); }
+  .level-badge.l4 { background: var(--l4); }
+  .level-badge.l5 { background: var(--l5); }
+
+  .level-bar-wrap { display: flex; gap: 3px; align-items: center; margin-top: 4px; }
+  .level-bar { width: 28px; height: 6px; border-radius: 3px; background: #e5e7eb; }
+  .level-bar.fill.l1 { background: var(--l1); }
+  .level-bar.fill.l2 { background: var(--l2); }
+  .level-bar.fill.l3 { background: var(--l3); }
+  .level-bar.fill.l4 { background: var(--l4); }
+  .level-bar.fill.l5 { background: var(--l5); }
+
+  .pri-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .pri-badge.p0 { background: #fef2f2; color: var(--p0); border: 1px solid #fecaca; }
+  .pri-badge.p1 { background: #fffbeb; color: var(--p1); border: 1px solid #fde68a; }
+  .pri-badge.p2 { background: #f9fafb; color: var(--p2); border: 1px solid #e5e7eb; }
+  .pri-badge.p3 { background: #f9fafb; color: var(--p3); border: 1px solid #e5e7eb; }
+
+  /* Radar-like Summary */
+  .summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-top: 16px; }
+  .summary-item { text-align: center; padding: 20px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid var(--border); }
+  .summary-item .domain { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .summary-item .score { font-size: 28px; font-weight: 700; }
+  .summary-item .label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Quote */
+  .quote { border-left: 4px solid var(--accent); padding: 16px 20px; margin: 20px 0; background: #f8fafc; border-radius: 0 8px 8px 0; font-style: italic; color: var(--text-secondary); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; }
+  .tab-btn { padding: 10px 24px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-size: 14px; color: var(--text-secondary); border-bottom: none; }
+  .tab-btn:first-child { border-radius: 8px 0 0 0; }
+  .tab-btn:last-child { border-radius: 0 8px 0 0; }
+  .tab-btn.active { background: var(--card); color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent); }
+  .tab-content { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; padding: 24px; background: var(--card); }
+  .tab-content.active { display: block; }
+
+  /* Timeline */
+  .timeline { position: relative; padding: 20px 0; }
+  .timeline::before { content: ""; position: absolute; left: 20px; top: 0; bottom: 0; width: 3px; background: var(--accent); border-radius: 2px; }
+  .tl-item { position: relative; padding-left: 56px; margin-bottom: 32px; }
+  .tl-item::before { content: ""; position: absolute; left: 12px; top: 4px; width: 19px; height: 19px; border-radius: 50%; background: var(--accent); border: 4px solid #dbeafe; }
+  .tl-item h4 { font-size: 15px; margin-bottom: 4px; }
+  .tl-item .tl-time { font-size: 12px; color: var(--accent); font-weight: 600; }
+  .tl-item p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .stage-map { flex-direction: column; }
+    .stage-arrow { transform: rotate(90deg); justify-content: center; }
+    .summary-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .hero h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>地址智能与路径规划 — 能力地图</h1>
+    <p class="subtitle">了解我们部门在行业中的定位、当前能力水平，以及未来 24 个月的演进方向</p>
+    <div class="badge-row">
+      <span class="badge">团队 12 人</span>
+      <span class="badge">美国跨境物流</span>
+      <span class="badge">地址 + 路线 + GIS</span>
+    </div>
+  </div>
+
+  <!-- Section: 我们在行业中是谁 -->
+  <div class="section">
+    <h2>我们在行业中是谁</h2>
+    <p class="desc">我们部门的工作在行业中并非孤例。全球头部物流和电商企业都有对标的组织和岗位，以下是各公司的对应部门。</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(event,'tab-bench')">行业对标</button>
+      <button class="tab-btn" onclick="switchTab(event,'tab-name')">命名规律 & 名字讨论</button>
+    </div>
+    <div class="tab-content active" id="tab-bench">
+      <table class="cap-table">
+        <thead>
+          <tr><th>公司</th><th>部门 / 团队名称</th><th>典型岗位</th><th>组织层级</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Amazon</strong></td><td>Last Mile Address Intelligence (LMAI) + Geospatial Science</td><td>Applied Scientist、Data Scientist</td><td>Last Mile Science & Technology 大组织</td></tr>
+          <tr><td><strong>Amazon（路线）</strong></td><td>SCOT / CONDOR 系统团队</td><td>Principal Scientist (Routing)</td><td>Supply Chain Optimization Technologies</td></tr>
+          <tr><td><strong>菜鸟网络</strong></td><td>全球化物流中台 — 智能路由中心 + 物流网络中心</td><td>算法工程师、高级技术专家</td><td>物流科技板块</td></tr>
+          <tr><td><strong>顺丰</strong></td><td>丰图科技（独立子公司，约 600 人）</td><td>运筹优化算法工程师、GIS 工程师、AI 算法工程师</td><td>独立子公司，对外 SaaS 输出</td></tr>
+          <tr><td><strong>USPS</strong></td><td>Geospatial Analytics Team</td><td>Geospatial Analyst、GIS Specialist</td><td>Chief Data & Analytics Officer</td></tr>
+          <tr><td><strong>UPS</strong></td><td>Operations Research / Advanced Technology Group（ORION 系统）</td><td>OR Scientist、Route Optimization Engineer</td><td>企业级技术部门</td></tr>
+          <tr><td><strong>FedEx</strong></td><td>FedEx Dataworks + RouteSmart Technologies（2025 年收购）</td><td>Data Scientist、Route Optimization Engineer</td><td>Dataworks 独立实体</td></tr>
+          <tr><td><strong>京东物流</strong></td><td>"与图"智能地图业务</td><td>算法工程师、GIS 开发工程师</td><td>技术研发条线，SaaS 对外</td></tr>
+          <tr><td><strong>美团</strong></td><td>地图服务部（平台）+ 配送算法团队（业务）</td><td>GIS 工程师、运筹算法工程师</td><td>"平台支撑 + 业务应用"双层</td></tr>
+          <tr><td><strong>SHEIN / Temu / TikTok</strong></td><td>履约监控 / 物流计划团队</td><td>Logistics Operations、Supply Chain Analyst</td><td>大量依赖第三方物流</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tab-content" id="tab-name">
+      <p style="font-size:14px; margin-bottom:16px;">行业中这类部门的命名主要有 <strong>6 种模式</strong>，我们的当前名字"路径规划组"只覆盖了路线规划这一块，并不准确：</p>
+      <table class="cap-table">
+        <thead><tr><th>命名模式</th><th>代表公司</th><th>核心理念</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Address Intelligence（地址智能）</strong></td><td>Amazon LMAI</td><td>强调 AI/ML 对地址数据的理解与学习，近年最受推崇</td></tr>
+          <tr><td><strong>Geospatial Science / Analytics</strong></td><td>Amazon Geospatial、USPS</td><td>强调科学属性，偏向数据科学与空间分析</td></tr>
+          <tr><td><strong>智能路由 / Route Optimization</strong></td><td>菜鸟、UPS ORION、FedEx</td><td>以路由优化为核心</td></tr>
+          <tr><td><strong>GIS / 地图 + 中台 / 平台</strong></td><td>丰图科技、京东"与图"</td><td>全栈 GIS 能力，常以 SaaS 对外输出</td></tr>
+          <tr><td><strong>Logistics Science & Technology</strong></td><td>Amazon、菜鸟</td><td>一级大组织，下设多个专业团队</td></tr>
+          <tr><td><strong>Dataworks / Data & Analytics</strong></td><td>FedEx、USPS</td><td>将 GIS 和路线优化视为企业数据能力的一部分</td></tr>
+        </tbody>
+      </table>
+      <div class="quote" style="margin-top:20px;">
+        <strong>关于我们的名字：</strong>"路径规划组"这个名字在行业中没有对标——没有一家成熟公司会把地址智能和 GIS 数据归入"路径规划组"。建议的替代方案包括：<strong>"地址智能与路径规划部"</strong>（Address & Route Intelligence）、<strong>"地址智能与地理空间部"</strong>（Address Intelligence & Geospatial），或对标 Amazon 直接叫 <strong>"地址智能部"</strong>（Address Intelligence）。其中"地址智能与地理空间部"最能体现地址数据 + GIS 空间数据 + 路线规划三块核心工作的完整版图。
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: 我们在哪个位置 — 阶段图谱 -->
+  <div class="section">
+    <h2>我们在哪个位置</h2>
+    <p class="desc">以 L1-L5 成熟度框架评估，我们的部门整体处于 <strong>L2.5 → L3</strong> 过渡阶段（标准级向智能级过渡）。</p>
+
+    <div class="legend-row">
+      <span style="font-weight:600;margin-right:8px;">成熟度分级：</span>
+      <span class="legend-item"><span class="legend-dot l1"></span> L1 初始级</span>
+      <span class="legend-item"><span class="legend-dot l2"></span> L2 标准化级</span>
+      <span class="legend-item"><span class="legend-dot l3"></span> L3 系统化级</span>
+      <span class="legend-item"><span class="legend-dot l4"></span> L4 智能化级</span>
+      <span class="legend-item"><span class="legend-dot l5"></span> L5 生态化级</span>
+    </div>
+
+    <div class="stage-map">
+      <div class="stage-card" style="opacity:.6">
+        <div class="stage-num">L1</div>
+        <div class="stage-title">初始级</div>
+        <ul class="stage-list"><li>依赖人工或外部工具</li><li>无系统化能力</li><li>无法度量效果</li></ul>
+      </div>
+      <div class="stage-arrow">→</div>
+      <div class="stage-card" style="opacity:.75">
+        <div class="stage-num">L2</div>
+        <div class="stage-title">标准化级</div>
+        <ul class="stage-list"><li>有基本系统支撑</li><li>流程标准化</li><li>主要靠人工操作</li></ul>
+      </div>
+      <div class="stage-arrow">→</div>
+      <div class="stage-card active">
+        <span class="stage-label">我们在这里</span>
+        <div class="stage-num">L2.5 → L3</div>
+        <div class="stage-title">系统化级</div>
+        <ul class="stage-list"><li>地址解析：完整三级流水线 ✓</li><li>路线规划：VRP+TSP+网格 ✓</li><li>地址运营：群聊为主 ✗</li><li>地址画像：仅计划阶段 ✗</li></ul>
+      </div>
+      <div class="stage-arrow">→</div>
+      <div class="stage-card" style="opacity:.5">
+        <div class="stage-num">L4</div>
+        <div class="stage-title">智能化级</div>
+        <ul class="stage-list"><li>ML 驱动决策</li><li>自动学习与优化</li><li>人监督例外处理</li><li>地址画像驱动路线</li></ul>
+      </div>
+      <div class="stage-arrow">→</div>
+      <div class="stage-card" style="opacity:.3">
+        <div class="stage-num">L5</div>
+        <div class="stage-title">生态化级</div>
+        <ul class="stage-list"><li>预测性地址治理</li><li>实时动态调度</li><li>能力对外输出</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: 能力图谱总览 -->
+  <div class="section">
+    <h2>能力图谱总览</h2>
+    <p class="desc">横跨 <strong>6 个能力域、15 个能力项</strong>，标注当前水平（彩色柱）、目标水平和优先级。</p>
+
+    <div class="summary-grid">
+      <div class="summary-item" style="border-top:3px solid var(--l3)"><div class="domain">地址解析域</div><div class="score" style="color:var(--l3)">L3.0</div><div class="label">3 项能力</div></div>
+      <div class="summary-item" style="border-top:3px solid var(--l2)"><div class="domain">地址质量域</div><div class="score" style="color:var(--l2)">L2.3</div><div class="label">3 项能力</div></div>
+      <div class="summary-item" style="border-top:3px solid var(--l1)"><div class="domain">地址运营域</div><div class="score" style="color:var(--l1)">L1.0</div><div class="label">2 项能力 · 最大短板</div></div>
+      <div class="summary-item" style="border-top:3px solid var(--l3)"><div class="domain">路线规划域</div><div class="score" style="color:var(--l3)">L2.3</div><div class="label">3 项能力</div></div>
+      <div class="summary-item" style="border-top:3px solid var(--l2)"><div class="domain">GIS 数据域</div><div class="score" style="color:var(--l2)">L2.0</div><div class="label">2 项能力</div></div>
+      <div class="summary-item" style="border-top:3px solid var(--l1)"><div class="domain">AI 能力域</div><div class="score" style="color:var(--l1)">L1.5</div><div class="label">2 项能力 · 战略性差距</div></div>
+    </div>
+
+    <table class="cap-table" style="margin-top:28px;">
+      <thead>
+        <tr>
+          <th style="width:18%">能力项</th>
+          <th style="width:22%">当前水平</th>
+          <th style="width:22%">目标水平</th>
+          <th style="width:10%">优先级</th>
+          <th style="width:28%">关键动作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 地址解析域 -->
+        <tr class="domain-header"><td colspan="5">地址解析域</td></tr>
+        <tr>
+          <td><strong>地址解释器</strong><br><span style="font-size:11px;color:var(--text-secondary)">Address Parser</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> 自研规则+传统ML
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> LLM增强</td>
+          <td><span class="pri-badge p1">P1</span></td>
+          <td>引入大模型做地址实体识别和异常地址理解</td>
+        </tr>
+        <tr>
+          <td><strong>标准地址库</strong><br><span style="font-size:11px;color:var(--text-secondary)">Standard Address DB</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> USPS+官网采集
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> 21级语义+自动更新</td>
+          <td><span class="pri-badge p1">P1</span></td>
+          <td>建立版本管理和自动更新机制</td>
+        </tr>
+        <tr>
+          <td><strong>多图商路由</strong><br><span style="font-size:11px;color:var(--text-secondary)">Geocoder Router</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> 固定顺序 Smarty→Google→Here
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> ML驱动最优选择</td>
+          <td><span class="pri-badge p2">P2</span></td>
+          <td>基于历史质量数据训练图商选择模型</td>
+        </tr>
+
+        <!-- 地址质量域 -->
+        <tr class="domain-header"><td colspan="5">地址质量域</td></tr>
+        <tr>
+          <td><strong>地址校验体系</strong><br><span style="font-size:11px;color:var(--text-secondary)">Address Validation</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> 规范/危险/黑名单
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> 多维质量评分+配送准备度</td>
+          <td><span class="pri-badge p1">P1</span></td>
+          <td>建立地址质量综合评分（置信度、组件匹配度）</td>
+        </tr>
+        <tr>
+          <td><strong>地址画像</strong><br><span style="font-size:11px;color:var(--text-secondary)">Address Profile</span></td>
+          <td>
+            <span class="level-badge l1">L1</span> 仅有计划
+            <div class="level-bar-wrap"><span class="level-bar fill l1"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> 360°末端画像（对标Amazon Wellspring）</td>
+          <td><span class="pri-badge p0">P0 最高</span></td>
+          <td>从地址类型+服务时间+历史照片关联起步；远期：妥投照片视觉识别→App语音播报"白色木门"；GPS轨迹自动挖掘停车点/出入口；停留时间自动识别派送难度</td>
+        </tr>
+        <tr>
+          <td><strong>经验地址库</strong><br><span style="font-size:11px;color:var(--text-secondary)">Learned Address DB</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> 妥投+无客诉验证
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> 多条件验证+置信度评分</td>
+          <td><span class="pri-badge p2">P2</span></td>
+          <td>接入配送照片、时间一致性等更多验证条件</td>
+        </tr>
+
+        <!-- 地址运营域 -->
+        <tr class="domain-header"><td colspan="5">地址运营域 <span style="color:var(--p0);font-weight:400;font-size:12px;">← 当前最大短板</span></td></tr>
+        <tr>
+          <td><strong>反馈收集系统</strong><br><span style="font-size:11px;color:var(--text-secondary)">Feedback Collection</span></td>
+          <td>
+            <span class="level-badge l1">L1</span> 群聊+人工
+            <div class="level-bar-wrap"><span class="level-bar fill l1"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> 结构化反馈+自动分类</td>
+          <td><span class="pri-badge p0">P0 最高</span></td>
+          <td>快递员App内建立结构化反馈入口，替代群聊</td>
+        </tr>
+        <tr>
+          <td><strong>自动修正能力</strong><br><span style="font-size:11px;color:var(--text-secondary)">Auto Correction</span></td>
+          <td>
+            <span class="level-badge l1">L1</span> 完全人工
+            <div class="level-bar-wrap"><span class="level-bar fill l1"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> 高置信度自动修正+人工审核</td>
+          <td><span class="pri-badge p1">P1</span></td>
+          <td>建立自动验证规则引擎</td>
+        </tr>
+
+        <!-- 路线规划域 -->
+        <tr class="domain-header"><td colspan="5">路线规划域</td></tr>
+        <tr>
+          <td><strong>VRP</strong><br><span style="font-size:11px;color:var(--text-secondary)">分单+路线联合优化</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> 丰富约束+多层网格
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> ML驱动+画像联动</td>
+          <td><span class="pri-badge p2">P2</span></td>
+          <td>将地址画像属性输入VRP约束条件</td>
+        </tr>
+        <tr>
+          <td><strong>TSP</strong><br><span style="font-size:11px;color:var(--text-secondary)">个性化路线排序</span></td>
+          <td>
+            <span class="level-badge l3">L3</span> 约束条件驱动
+            <div class="level-bar-wrap"><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar fill l3"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l4">L4</span> 学习司机隐性知识</td>
+          <td><span class="pri-badge p2">P2</span></td>
+          <td>从历史路线数据中学习司机行为模式</td>
+        </tr>
+        <tr>
+          <td><strong>司机知识融合</strong><br><span style="font-size:11px;color:var(--text-secondary)">Driver Knowledge</span></td>
+          <td>
+            <span class="level-badge l1">L1</span> 未系统化
+            <div class="level-bar-wrap"><span class="level-bar fill l1"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> ML学习司机偏好</td>
+          <td><span class="pri-badge p2">P2</span></td>
+          <td>采集分析司机实际路线偏离数据</td>
+        </tr>
+
+        <!-- GIS 数据域 -->
+        <tr class="domain-header"><td colspan="5">GIS 数据域</td></tr>
+        <tr>
+          <td><strong>空间数据管理</strong><br><span style="font-size:11px;color:var(--text-secondary)">Spatial Data Mgmt</span></td>
+          <td>
+            <span class="level-badge l2">L2</span> PostGIS+手工更新
+            <div class="level-bar-wrap"><span class="level-bar fill l2"></span><span class="level-bar fill l2"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> 自动化采集+版本管理</td>
+          <td><span class="pri-badge p2">P2</span></td>
+          <td>建立空间数据自动化更新流程</td>
+        </tr>
+        <tr>
+          <td><strong>电子围栏/网格</strong><br><span style="font-size:11px;color:var(--text-secondary)">Geofence & Grid</span></td>
+          <td>
+            <span class="level-badge l2">L2</span> 手工维护
+            <div class="level-bar-wrap"><span class="level-bar fill l2"></span><span class="level-bar fill l2"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> 自动更新+空间分析</td>
+          <td><span class="pri-badge p3">P3</span></td>
+          <td>建立变化检测和版本管理机制</td>
+        </tr>
+
+        <!-- AI 能力域 -->
+        <tr class="domain-header"><td colspan="5">AI 能力域 <span style="color:var(--p0);font-weight:400;font-size:12px;">← 战略性差距</span></td></tr>
+        <tr>
+          <td><strong>LLM / 大模型应用</strong></td>
+          <td>
+            <span class="level-badge l1">L1</span> 未应用
+            <div class="level-bar-wrap"><span class="level-bar fill l1"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> 地址理解+运营辅助</td>
+          <td><span class="pri-badge p0">P0 最高</span></td>
+          <td>从地址解析LLM增强开始试点</td>
+        </tr>
+        <tr>
+          <td><strong>ML 模型能力</strong></td>
+          <td>
+            <span class="level-badge l2">L2</span> 传统ML为主
+            <div class="level-bar-wrap"><span class="level-bar fill l2"></span><span class="level-bar fill l2"></span><span class="level-bar"></span><span class="level-bar"></span><span class="level-bar"></span></div>
+          </td>
+          <td><span class="level-badge l3">L3</span> 深度学习+预训练模型</td>
+          <td><span class="pri-badge p1">P1</span></td>
+          <td>引入深度语义匹配模型做地址匹配</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section: 三大差距 -->
+  <div class="section">
+    <h2>当前最关键的三个差距</h2>
+    <p class="desc">与 Amazon、菜鸟等行业标杆对比，我们最需要补齐的三件事。</p>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:16px;">
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:24px;">
+        <h4 style="color:var(--p0);margin-bottom:8px;">差距一：地址画像完全空白</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">我们计划做的类型分类、服务时间、门禁、出入口、安全标签、派送难易度等，正是行业核心能力。Amazon Wellspring 已覆盖 14,000+ 公寓小区、280 万公寓地址精准映射，并利用生成式 AI 从配送照片中自动提取建筑颜色、门类型、停车点等视觉特征。实现后，App 可在司机接近时语音播报"请寻找白色木门建筑"——从"知道地址在哪"升级到"知道怎么送到"。</p>
+        <p style="font-size:12px;margin-top:8px;color:var(--accent);">参照：Amazon Wellspring（官方博客）、Amazon Last-Mile Routing Challenge（MIT）</p>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:24px;">
+        <h4 style="color:var(--p1);margin-bottom:8px;">差距二：运营自动化不足</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">群聊反馈模式是行业最原始的阶段。Amazon 已实现"配送照片→视觉AI解析→自动更新画像"的闭环。服务时间也不再靠人工标注——如果某地址周末妥投率极低，算法自动推理其为"周末不营业"，无需人工干预。需要优先建立系统化反馈和自动修正能力。</p>
+        <p style="font-size:12px;margin-top:8px;color:var(--accent);">参照：Amazon Wellspring delivery feedback loop</p>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:24px;">
+        <h4 style="color:var(--accent);margin-bottom:8px;">差距三：AI 化深度不足</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">地址解释器仍是规则+传统 ML，行业已进入深度学习/预训练模型时代。Amazon GeoGround（ACL 2026）用深度学习做地址缺陷检测，性能提升 5.86 倍。菜鸟 G2PTL 开源了异构图预训练模型。GeoAgent（ACL 2024）实现了基于 LLM 的地址语义搜索。从"规则匹配地址"到"语义理解地址"是质变。</p>
+        <p style="font-size:12px;margin-top:8px;color:var(--accent);">参照：Amazon GeoGround（ACL 2026）、GeoAgent（ACL 2024）、菜鸟 G2PTL（HuggingFace）</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: 24 个月演进路线 -->
+  <div class="section">
+    <h2>24 个月演进路线</h2>
+    <p class="desc">四个阶段，从补齐运营短板到迈向自适应智能。</p>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <span class="tl-time">0 - 6 个月</span>
+        <h4>第一阶段：夯实基础，补齐运营短板</h4>
+        <p>将地址运营从"群聊模式"升级为"系统化模式"。核心动作：快递员 App 内建立结构化反馈入口替代群聊；搭建反馈审核工作台（批量处理+优先级排序）；引入自动验证规则引擎（高频简单场景自动修正）；建立地址质量监控看板（首次投递成功率、地址修正率、图商 fallback 率）。<strong>投入产出比最高，不增加人力即可显著提升数据质量。</strong></p>
+      </div>
+      <div class="tl-item">
+        <span class="tl-time">6 - 12 个月</span>
+        <h4>第二阶段：启动地址画像，深化 AI 能力</h4>
+        <p>从最容易获取的属性开始构建地址画像。核心动作：地址类型分类（结合 USPS RDI 和图商字段）；服务时间自动推理（从历史配送数据中学习——某地址周末妥投率极低→自动标记为"周末不营业"，无需人工标注）；历史妥投照片与地址绑定（为后续视觉识别打基础）；引入 LLM 增强地址解析器（处理传统 Parser 难解析的非规范地址）。<strong>从"能解析地址"升级到"能理解地址"。</strong></p>
+      </div>
+      <div class="tl-item">
+        <span class="tl-time">12 - 18 个月</span>
+        <h4>第三阶段：画像深化，画像驱动路线</h4>
+        <p>地址画像扩充至完整属性体系。核心动作：轨迹挖掘自动发现停车点和真实出入口（分析司机 GPS 轨迹中的静止点，替代人工标注，Amazon Wellspring 已用此方法识别 400 万地址的停车点）；动态服务时间模型（对比标准服务时间与实际停留时间，自动识别高难度地址，VRP 分单时减小该司机的件量）；配送照片视觉识别（CV 分析自动提取建筑颜色、门类型，App 语音播报"白色木门建筑"指引下一位司机）；门禁密码、安全标签、快递柜信息全面上线；画像数据直接输入 VRP/TSP 约束。</p>
+      </div>
+      <div class="tl-item">
+        <span class="tl-time">18 - 24 个月</span>
+        <h4>第四阶段：迈向自适应智能</h4>
+        <p>建立完整地址知识图谱（对标菜鸟 G2PTL），地址从字符串升级为语义向量。实现实时动态路线优化。预测性地址治理——在配送失败发生前主动识别和修正问题。运营全自动化——AI 驱动的自主修正循环。远期：地址与 GIS 能力以 SaaS 形式对外输出。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: 我们的优势 -->
+  <div class="section">
+    <h2>我们做得好的地方</h2>
+    <p class="desc">在与行业标杆对比中，我们也有不少值得肯定的地方。</p>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+      <div style="padding:20px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+        <h4 style="color:#16a34a;margin-bottom:6px;">地址解析三级流水线</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">经验地址库 → 自研解释器+标准库 → 多图商 fallback，架构完整且合理，与 Amazon LMAI 的地址智能框架理念一致。</p>
+      </div>
+      <div style="padding:20px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+        <h4 style="color:#16a34a;margin-bottom:6px;">经验地址库验证机制</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">"妥投+无客诉"双条件验证来生效地址映射，与 Amazon 通过配送反馈持续改进地址质量的思路高度吻合。</p>
+      </div>
+      <div style="padding:20px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+        <h4 style="color:#16a34a;margin-bottom:6px;">图商结果质量管控</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">制定了解析结果可用性标准（rooftop 精度、邮编一致、门牌号一致），不盲目接受图商返回，与 USPS DPV 理念一致。</p>
+      </div>
+      <div style="padding:20px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+        <h4 style="color:#16a34a;margin-bottom:6px;">多层网格聚合</h4>
+        <p style="font-size:13px;color:var(--text-secondary);">大网格拆分子网格，同网格包裹聚合派送，与 Amazon CONDOR 的分区优化思路相似。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: 部门愿景 -->
+  <div class="section" style="background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;border:none;">
+    <h2 style="color:#fff;">部门愿景：地址智能与地理空间服务中台</h2>
+    <p style="opacity:.85;margin-bottom:20px;">对内向配送业务提供四大核心能力，对外（远期）可像丰图科技或京东"与图"一样以 SaaS 形式输出。</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px;">
+      <div style="text-align:center;padding:24px 16px;background:rgba(255,255,255,.1);border-radius:10px;">
+        <div style="font-size:32px;margin-bottom:8px;">📍</div>
+        <div style="font-weight:700;font-size:15px;">地址数据质量</div>
+        <div style="font-size:12px;opacity:.75;margin-top:4px;">让每一个地址都可投递</div>
+      </div>
+      <div style="text-align:center;padding:24px 16px;background:rgba(255,255,255,.1);border-radius:10px;">
+        <div style="font-size:32px;margin-bottom:8px;">🧠</div>
+        <div style="font-weight:700;font-size:15px;">地址画像</div>
+        <div style="font-size:12px;opacity:.75;margin-top:4px;">让每一个地址都被理解</div>
+      </div>
+      <div style="text-align:center;padding:24px 16px;background:rgba(255,255,255,.1);border-radius:10px;">
+        <div style="font-size:32px;margin-bottom:8px;">🗺️</div>
+        <div style="font-weight:700;font-size:15px;">路线优化</div>
+        <div style="font-size:12px;opacity:.75;margin-top:4px;">让每一次配送都最优</div>
+      </div>
+      <div style="text-align:center;padding:24px 16px;background:rgba(255,255,255,.1);border-radius:10px;">
+        <div style="font-size:32px;margin-bottom:8px;">🌐</div>
+        <div style="font-weight:700;font-size:15px;">GIS 基础设施</div>
+        <div style="font-size:12px;opacity:.75;margin-top:4px;">让空间数据成为底座</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:12px;">
+    <p>本材料基于行业公开资料（Amazon Jobs、ACL/EMNLP 论文、USPS 官方文档、各公司技术博客、招聘平台）整理</p>
+    <p style="margin-top:4px;">地址画像具体场景参考：Amazon Wellspring 官方博客（建筑视觉特征识别、停车点自动挖掘）；Amazon Last-Mile Routing Challenge（MIT，司机停留时间分析）；Amazon GeoGround（ACL 2026 Industry Track，地址缺陷检测）</p>
+    <p style="margin-top:4px;">成熟度分级（L1-L5）为基于行业对标的方向性评估框架，非行业标准认证</p>
+    <p style="margin-top:4px;">详细报告参见 <a href="research_report_logistics_address_route_dept.md" style="color:var(--accent);">research_report_logistics_address_route_dept.md</a></p>
+  </div>
+</div>
+
+<script>
+function switchTab(evt, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  evt.currentTarget.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+</script>
+</body>
+</html>

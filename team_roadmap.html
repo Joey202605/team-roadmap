@@ -43,11 +43,14 @@
   .stage-map { display: flex; gap: 16px; align-items: stretch; margin-top: 20px; }
   .stage-card { flex: 1; border-radius: 12px; padding: 24px 18px; border: 2px solid var(--border); position: relative; }
   .stage-card.active { border-color: var(--accent); background: #eff6ff; }
+  .stage-card.done { border-color: #22c55e; background: #f0fdf4; }
+  .stage-card.future { border-style: dashed; border-color: #d1d5db; background: #f9fafb; }
   .stage-card .stage-num { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 6px; }
   .stage-card .stage-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
   .stage-card .stage-list { font-size: 12px; color: var(--text-secondary); list-style: none; }
   .stage-card .stage-list li { padding: 2px 0; }
   .stage-card .stage-list li::before { content: "· "; color: var(--accent); }
+  .stage-card.done .stage-list li::before { color: #22c55e; }
   .stage-arrow { display: flex; align-items: center; font-size: 24px; color: var(--accent); flex-shrink: 0; }
   .stage-label { position: absolute; top: -12px; right: 12px; background: var(--accent); color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
 
@@ -58,8 +61,8 @@
   .legend-dot.l1 { background: var(--l1); }
   .legend-dot.l2 { background: var(--l2); }
   .legend-dot.l3 { background: var(--l3); }
-  .legend-dot.l4 { background: var(--l4); }
-  .legend-dot.l5 { background: var(--l5); }
+  .legend-dot.l4 { background: transparent; border: 2px dashed var(--l4); }
+  .legend-dot.l5 { background: transparent; border: 2px dashed var(--l5); }
 
   /* Capability Table */
   .cap-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
@@ -206,14 +209,14 @@
     </div>
 
     <div class="stage-map">
-      <div class="stage-card" style="opacity:.6">
-        <div class="stage-num">L1</div>
+      <div class="stage-card done">
+        <div class="stage-num">L1 ✓ 已完成</div>
         <div class="stage-title">初始级</div>
         <ul class="stage-list"><li>依赖人工或外部工具</li><li>无系统化能力</li><li>无法度量效果</li></ul>
       </div>
       <div class="stage-arrow">→</div>
-      <div class="stage-card" style="opacity:.75">
-        <div class="stage-num">L2</div>
+      <div class="stage-card done">
+        <div class="stage-num">L2 ✓ 已完成</div>
         <div class="stage-title">标准化级</div>
         <ul class="stage-list"><li>有基本系统支撑</li><li>流程标准化</li><li>主要靠人工操作</li></ul>
       </div>
@@ -225,13 +228,13 @@
         <ul class="stage-list"><li>地址解析：完整三级流水线 ✓</li><li>路线规划：VRP+TSP+网格 ✓</li><li>地址运营：群聊为主 ✗</li><li>地址画像：仅计划阶段 ✗</li></ul>
       </div>
       <div class="stage-arrow">→</div>
-      <div class="stage-card" style="opacity:.5">
+      <div class="stage-card future">
         <div class="stage-num">L4</div>
         <div class="stage-title">智能化级</div>
         <ul class="stage-list"><li>ML 驱动决策</li><li>自动学习与优化</li><li>人监督例外处理</li><li>地址画像驱动路线</li></ul>
       </div>
       <div class="stage-arrow">→</div>
-      <div class="stage-card" style="opacity:.3">
+      <div class="stage-card future">
         <div class="stage-num">L5</div>
         <div class="stage-title">生态化级</div>
         <ul class="stage-list"><li>预测性地址治理</li><li>实时动态调度</li><li>能力对外输出</li></ul>

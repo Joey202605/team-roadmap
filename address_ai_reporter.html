@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 地址问题上报 - 快递员端 Demo</title>
+<style>
+  :root {
+    --bg: #f0f2f5; --card: #fff;
+    --primary: #2563eb; --primary-light: #eff6ff;
+    --success: #16a34a; --success-light: #f0fdf4;
+    --warning: #f59e0b; --warning-light: #fffbeb;
+    --danger: #dc2626; --danger-light: #fef2f2;
+    --text: #1a1a2e; --text-secondary: #6b7280;
+    --border: #e5e7eb; --shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    display: flex; justify-content: center; align-items: center; padding: 20px;
+  }
+  .phone-frame {
+    width: 420px; max-width: 100%; height: 780px; max-height: 95vh;
+    background: var(--card); border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .phone-header {
+    background: var(--primary); color: #fff; padding: 14px 18px;
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .phone-header .title { font-size: 15px; font-weight: 600; }
+  .phone-header .subtitle { font-size: 11px; opacity: .7; }
+
+  .chat-area { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 88%; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .msg.bot {
+    align-self: flex-start; background: var(--primary-light);
+    border-radius: 14px 14px 14px 4px; padding: 10px 14px; font-size: 13px; line-height: 1.5;
+  }
+  .msg.user {
+    align-self: flex-end; background: var(--primary); color: #fff;
+    border-radius: 14px 14px 4px 14px; padding: 9px 12px; font-size: 13px;
+  }
+
+  /* 场景诊断卡片 */
+  .diag-card {
+    align-self: flex-start; width: 100%; border-radius: 14px; overflow: hidden;
+    animation: fadeIn .3s ease; border: 1px solid var(--border);
+  }
+  .diag-header {
+    padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .diag-header .diag-icon { font-size: 24px; }
+  .diag-body { padding: 12px 14px; background: #fff; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+
+  /* 操作选项按钮 */
+  .action-btns { align-self: flex-start; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .action-btn {
+    width: 100%; text-align: left; padding: 12px 14px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: #fff; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+    transition: all .15s; animation: fadeIn .3s ease;
+  }
+  .action-btn:hover { border-color: var(--primary); background: var(--primary-light); transform: translateX(2px); }
+  .action-btn:active { transform: scale(.98); }
+  .action-btn .ab-icon { font-size: 22px; flex-shrink: 0; }
+  .action-btn .ab-content { flex: 1; line-height: 1.4; }
+  .action-btn .ab-title { font-weight: 600; display: block; }
+  .action-btn .ab-desc { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px; }
+  .action-btn .ab-badge {
+    font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .badge-auto { background: #e0e7ff; color: #4338ca; }
+  .badge-manual { background: #fef3c7; color: #b45309; }
+  .badge-quick { background: #fee2e2; color: #b91c1c; }
+  .badge-smart { background: #d1fae5; color: #065f46; }
+
+  /* 执行结果 */
+  .exec-result {
+    align-self: flex-start; width: 100%; border-radius: 12px; padding: 12px 14px;
+    font-size: 12px; line-height: 1.5; animation: fadeIn .3s ease;
+  }
+  .exec-result.success { background: var(--success-light); border: 1px solid #86efac; color: #166534; }
+  .exec-result.warning { background: var(--warning-light); border: 1px solid #fcd34d; color: #92400e; }
+
+  .input-area {
+    padding: 10px 14px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+  }
+  .input-area textarea {
+    flex: 1; border: 1px solid var(--border); border-radius: 18px;
+    padding: 9px 14px; font-size: 13px; resize: none; outline: none;
+    font-family: inherit; line-height: 1.4; max-height: 90px;
+  }
+  .input-area textarea:focus { border-color: var(--primary); }
+  .input-area button {
+    width: 38px; height: 38px; border-radius: 50%; border: none;
+    background: var(--primary); color: #fff; font-size: 16px;
+    cursor: pointer; flex-shrink: 0; transition: transform .15s;
+  }
+  .input-area button:hover { transform: scale(1.05); }
+  .input-area button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  .quick-row {
+    display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 14px; flex-shrink: 0;
+  }
+  .quick-row button {
+    padding: 5px 11px; border-radius: 14px; border: 1px solid var(--border);
+    background: #fff; font-size: 11px; cursor: pointer; white-space: nowrap;
+    color: var(--text-secondary); transition: all .15s;
+  }
+  .quick-row button:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+  .typing { align-self: flex-start; display: flex; gap: 4px; padding: 8px 14px; background: var(--primary-light); border-radius: 14px; }
+  .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  /* API 配置面板 */
+  .config-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex;
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  .config-overlay.hidden { display: none; }
+  .config-panel {
+    background: #fff; border-radius: 16px; padding: 20px; width: 360px; max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .config-panel h4 { margin-bottom: 12px; font-size: 15px; }
+  .config-panel label { display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; margin-top: 10px; }
+  .config-panel input, .config-panel select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 12px; outline: none; font-family: monospace;
+  }
+  .config-panel input:focus { border-color: var(--primary); }
+  .config-panel .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+  .config-panel .btn-row button {
+    flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text); }
+  .config-toggle {
+    position: fixed; bottom: 16px; right: 16px; width: 36px; height: 36px;
+    border-radius: 50%; background: var(--text); color: #fff; border: none;
+    font-size: 16px; cursor: pointer; box-shadow: var(--shadow); z-index: 99;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="phone-header">
+    <div>
+      <div class="title">📍 地址问题上报</div>
+      <div class="subtitle">Route #SJ-2841 · 176 E 92nd St, Brooklyn</div>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="msg bot">
+      嗨！遇到地址问题了？<br>
+      直接说就行，比如：<br>
+      "导航到这里不对，实际在对面"<br>
+      "有门禁进不去"<br>
+      "到了但没写房间号"
+    </div>
+  </div>
+
+  <div class="quick-row" id="quickRow">
+    <button onclick="quickReport('我到了这个位置，但定位偏了，实际入口在92街正门')">📍 定位偏移</button>
+    <button onclick="quickReport('大楼有门禁，我没有密码进不去')">🔒 门禁问题</button>
+    <button onclick="quickReport('地址没有写房间号，不知道送哪户')">🏠 缺房间号</button>
+    <button onclick="quickReport('这是个商店，已经关门了')">🏪 商业关门</button>
+  </div>
+
+  <div class="input-area">
+    <textarea id="userInput" rows="1" placeholder="描述遇到的问题..."
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+    <button id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<button class="config-toggle" onclick="toggleConfig()">⚙</button>
+<div class="config-overlay hidden" id="configOverlay">
+  <div class="config-panel">
+    <h4>⚙ API 配置</h4>
+    <label>OpenAI API Key（AI 语义识别）</label>
+    <input type="password" id="cfgOpenAI" placeholder="sk-...">
+    <label>OpenAI Base URL（可选）</label>
+    <input type="text" id="cfgBaseURL" placeholder="留空用默认 https://api.openai.com/v1">
+    <label>模型</label>
+    <input type="text" id="cfgModel" value="gpt-4o-mini">
+
+    <label>Google Geocoding API Key</label>
+    <input type="password" id="cfgGoogle" placeholder="留空跳过 Google">
+    <label>HERE Geocoding API Key</label>
+    <input type="password" id="cfgHere" placeholder="留空跳过 HERE">
+
+    <label>SmartyStreets Auth ID</label>
+    <input type="text" id="cfgSmartyID" placeholder="Auth ID">
+    <label>SmartyStreets Auth Token</label>
+    <input type="password" id="cfgSmartyToken" placeholder="Auth Token">
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="toggleConfig()">取消</button>
+      <button class="btn-primary" onclick="saveConfig()">保存配置</button>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-secondary);text-align:center;" id="cfgStatus"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 场景定义
+// ============================================================
+const SCENARIOS = {
+  gps_mismatch: {
+    label: '定位偏移', icon: '📍', color: '#2563eb',
+    summary: (p) => `系统检测到你在 ${p.address || '目标地址'} 附近，但实际位置与面单不一致。`,
+    actions: (p) => [
+      {
+        id: 'auto_regeocode', title: '自动重新解析地址', desc: '调用多图商 API 重新查找正确坐标，自动选取最优结果',
+        icon: '🔄', badge: '自动', badgeClass: 'badge-auto',
+        exec: (p, cfg) => autoRegeocode(p, cfg)
+      },
+      {
+        id: 'manual_fix', title: '手动标记正确位置', desc: '在你当前所在位置一键标记，更新地址经纬度画像',
+        icon: '📍', badge: '手动', badgeClass: 'badge-manual',
+        exec: (p) => manualFixCoordinate(p)
+      },
+      {
+        id: 'quick_report', title: '快速上报定位偏移', desc: '仅标记问题，由系统后台异步修正（不处理）',
+        icon: '📋', badge: '快速', badgeClass: 'badge-quick',
+        exec: (p) => quickReportIssue(p, 'gps_mismatch')
+      }
+    ]
+  },
+  gate_access: {
+    label: '门禁/无法进入', icon: '🔒', color: '#dc2626',
+    summary: (p) => `该地址可能需要门禁密码或授权才能进入。`,
+    actions: (p) => [
+      {
+        id: 'check_profile', title: '查询地址画像门禁信息', desc: '检索该地址是否已有门禁密码/入口指引记录',
+        icon: '🔍', badge: '自动', badgeClass: 'badge-auto',
+        exec: (p, cfg) => checkGateProfile(p)
+      },
+      {
+        id: 'find_locker', title: '查找周边快递柜/代收点', desc: '搜索 500m 内可用快递柜，改投备选位置',
+        icon: '📦', badge: '智能', badgeClass: 'badge-smart',
+        exec: (p) => findNearbyLocker(p)
+      },
+      {
+        id: 'contact_customer', title: '联系收件人获取门禁信息', desc: '一键拨打收件人电话或发送自动短信询问',
+        icon: '📞', badge: '手动', badgeClass: 'badge-manual',
+        exec: (p) => contactCustomer(p)
+      },
+      {
+        id: 'record_gate', title: '记录门禁问题并更新画像', desc: '标记无法进入，记录当前时间用于推断服务时间窗口',
+        icon: '🕐', badge: '快速', badgeClass: 'badge-quick',
+        exec: (p) => quickReportIssue(p, 'gate_access')
+      }
+    ]
+  },
+  missing_apt: {
+    label: '缺少房间号', icon: '🏠', color: '#f59e0b',
+    summary: (p) => `地址已到达大楼，但缺少房间号（Apt/Unit/Suite），无法确定具体送达位置。`,
+    actions: (p) => [
+      {
+        id: 'fill_apt', title: '联系收件人 → 补全房间号', desc: '获取房间号后直接填入修正，立即写入经验地址库',
+        icon: '✏️', badge: '推荐', badgeClass: 'badge-smart',
+        exec: (p) => fillAndSaveApt(p)
+      },
+      {
+        id: 'quick_flag', title: '标记地址信息不完整', desc: '不做处理，标记后由客服后续跟进采集',
+        icon: '🚩', badge: '快速', badgeClass: 'badge-quick',
+        exec: (p) => quickReportIssue(p, 'missing_apt')
+      }
+    ]
+  },
+  business_closed: {
+    label: '商业地址关门', icon: '🏪', color: '#8b5cf6',
+    summary: (p) => `该地址为商业场所，当前可能不在营业时间内。`,
+    actions: (p) => [
+      {
+        id: 'check_hours', title: '查询画像中的营业时间', desc: '检索该地址是否已记录服务时间窗口',
+        icon: '🕐', badge: '自动', badgeClass: 'badge-auto',
+        exec: (p) => checkBusinessHours(p)
+      },
+      {
+        id: 'update_hours', title: '更新营业时间画像', desc: '标记当前不可派送，系统自动学习可用时间段',
+        icon: '📝', badge: '智能', badgeClass: 'badge-smart',
+        exec: (p) => updateBusinessHours(p)
+      },
+      {
+        id: 'find_alt', title: '查找附近代收点/快递柜', desc: '搜索周边可用的备选妥投位置',
+        icon: '📦', badge: '备选', badgeClass: 'badge-manual',
+        exec: (p) => findNearbyLocker(p)
+      },
+      {
+        id: 'quick_flag_biz', title: '标记商业地址不可派送', desc: '仅记录问题，加入画像采集队列',
+        icon: '🚩', badge: '快速', badgeClass: 'badge-quick',
+        exec: (p) => quickReportIssue(p, 'business_closed')
+      }
+    ]
+  }
+};
+
+// ============================================================
+// 配置管理
+// ============================================================
+let config = {
+  openaiKey: localStorage.getItem('addr_openai_key') || '',
+  openaiBase: localStorage.getItem('addr_openai_base') || '',
+  openaiModel: localStorage.getItem('addr_openai_model') || 'gpt-4o-mini',
+  googleKey: localStorage.getItem('addr_google_key') || '',
+  hereKey: localStorage.getItem('addr_here_key') || '',
+  smartyId: localStorage.getItem('addr_smarty_id') || '',
+  smartyToken: localStorage.getItem('addr_smarty_token') || ''
+};
+
+function loadConfigUI() {
+  document.getElementById('cfgOpenAI').value = config.openaiKey;
+  document.getElementById('cfgBaseURL').value = config.openaiBase;
+  document.getElementById('cfgModel').value = config.openaiModel;
+  document.getElementById('cfgGoogle').value = config.googleKey;
+  document.getElementById('cfgHere').value = config.hereKey;
+  document.getElementById('cfgSmartyID').value = config.smartyId;
+  document.getElementById('cfgSmartyToken').value = config.smartyToken;
+  updateCfgStatus();
+}
+
+function toggleConfig() {
+  const ov = document.getElementById('configOverlay');
+  if (ov.classList.contains('hidden')) {
+    loadConfigUI();
+    ov.classList.remove('hidden');
+  } else {
+    ov.classList.add('hidden');
+  }
+}
+
+function saveConfig() {
+  config.openaiKey = document.getElementById('cfgOpenAI').value.trim();
+  config.openaiBase = document.getElementById('cfgBaseURL').value.trim();
+  config.openaiModel = document.getElementById('cfgModel').value.trim() || 'gpt-4o-mini';
+  config.googleKey = document.getElementById('cfgGoogle').value.trim();
+  config.hereKey = document.getElementById('cfgHere').value.trim();
+  config.smartyId = document.getElementById('cfgSmartyID').value.trim();
+  config.smartyToken = document.getElementById('cfgSmartyToken').value.trim();
+
+  localStorage.setItem('addr_openai_key', config.openaiKey);
+  localStorage.setItem('addr_openai_base', config.openaiBase);
+  localStorage.setItem('addr_openai_model', config.openaiModel);
+  localStorage.setItem('addr_google_key', config.googleKey);
+  localStorage.setItem('addr_here_key', config.hereKey);
+  localStorage.setItem('addr_smarty_id', config.smartyId);
+  localStorage.setItem('addr_smarty_token', config.smartyToken);
+
+  updateCfgStatus();
+  toggleConfig();
+}
+
+function updateCfgStatus() {
+  const s = document.getElementById('cfgStatus');
+  let parts = [];
+  if (config.openaiKey) parts.push('AI 语义识别');
+  if (config.googleKey) parts.push('Google');
+  if (config.hereKey) parts.push('HERE');
+  if (config.smartyId) parts.push('Smarty');
+  s.textContent = parts.length ? '已配置: ' + parts.join(' + ') : '未配置 API · 使用本地模拟';
+}
+
+updateCfgStatus();
+
+// ============================================================
+// 本地场景识别（无需 API）
+// ============================================================
+function localClassify(text) {
+  const lower = text.toLowerCase();
+
+  // 提取地址
+  let address = '';
+  const addrMatch = text.match(/(\d+[^,]{2,}(?:st|rd|th|ave|blvd|dr|lane|way|street|road|place|court)[^,.]*)/i);
+  if (addrMatch) address = addrMatch[1].trim();
+
+  // 场景分类
+  if (lower.includes('偏') || lower.includes('定位') || lower.includes('gps') || lower.includes('导航') || lower.includes('导到') || lower.includes('不对') || lower.includes('wrong loc') || lower.includes('不一致')) {
+    return { scenario: 'gps_mismatch', address, confidence: 0.88 };
+  }
+  if (lower.includes('门禁') || lower.includes('密码') || lower.includes('进不去') || lower.includes('锁') || lower.includes('gate') || lower.includes('code') || lower.includes('locked') || lower.includes('access')) {
+    return { scenario: 'gate_access', address, confidence: 0.90 };
+  }
+  if (lower.includes('房间号') || lower.includes('公寓') || lower.includes('apt') || lower.includes('unit') || lower.includes('suite') || lower.includes('几楼') || lower.includes('几号') || lower.includes('哪户')) {
+    return { scenario: 'missing_apt', address, confidence: 0.92 };
+  }
+  if (lower.includes('关门') || lower.includes('商店') || lower.includes('营业') || lower.includes('关门') || lower.includes('closed') || lower.includes('business') || lower.includes('公司') || lower.includes('没人')) {
+    return { scenario: 'business_closed', address, confidence: 0.85 };
+  }
+  // 兜底
+  return { scenario: 'gps_mismatch', address, confidence: 0.5 };
+}
+
+// ============================================================
+// OpenAI 场景识别
+// ============================================================
+async function openaiClassify(text) {
+  const baseUrl = config.openaiBase || 'https://api.openai.com/v1';
+  const prompt = `你是物流地址问题分类器。快递员会用中文描述配送中遇到的问题。
+请将问题归类为以下场景之一，并返回 JSON：
+{
+  "scenario": "gps_mismatch | gate_access | missing_apt | business_closed",
+  "address": "提取的地址字符串（如有）",
+  "detail": "额外细节（如快递员提到的门牌号、入口描述等）",
+  "confidence": 0.0-1.0
+}
+
+场景说明：
+- gps_mismatch: 定位/导航不准确，实际位置与面单不一致
+- gate_access: 有门禁、需要密码、进不去大楼
+- missing_apt: 缺少房间号/公寓号/单元号
+- business_closed: 商业地址关门、不在营业时间
+
+只返回 JSON，不要其他文字。`;
+
+  const resp = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.openaiKey}` },
+    body: JSON.stringify({
+      model: config.openaiModel,
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content: text }
+      ],
+      temperature: 0.1, max_tokens: 200
+    })
+  });
+  if (!resp.ok) throw new Error(`API ${resp.status}: ${await resp.text()}`);
+  const data = await resp.json();
+  const raw = data.choices[0].message.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return JSON.parse(raw);
+}
+
+// ============================================================
+// 图商 API 调用
+// ============================================================
+async function callGoogleGeocode(address) {
+  if (!config.googleKey) return null;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${config.googleKey}`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (data.status === 'OK' && data.results.length > 0) {
+    const loc = data.results[0].geometry.location;
+    return { provider: 'Google', lat: loc.lat, lng: loc.lng, formatted: data.results[0].formatted_address, type: data.results[0].types.join(',') };
+  }
+  return null;
+}
+
+async function callHereGeocode(address) {
+  if (!config.hereKey) return null;
+  const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(address)}&apiKey=${config.hereKey}`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (data.items && data.items.length > 0) {
+    const item = data.items[0];
+    return { provider: 'HERE', lat: item.position.lat, lng: item.position.lng, formatted: item.address.label, type: item.resultType };
+  }
+  return null;
+}
+
+async function callSmartyGeocode(address) {
+  if (!config.smartyId || !config.smartyToken) return null;
+  // 拆解地址
+  const parts = address.split(',').map(s => s.trim());
+  const street = parts[0] || '';
+  const city = parts[1] || '';
+  const stateZip = (parts[2] || '').trim().split(' ');
+  const state = stateZip[0] || '';
+  const zip = stateZip[1] || '';
+
+  const url = `https://us-street.api.smarty.com/street-address?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zipcode=${encodeURIComponent(zip)}&auth-id=${config.smartyId}&auth-token=${config.smartyToken}`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (data && data.length > 0) {
+    const r = data[0];
+    return {
+      provider: 'SmartyStreets',
+      lat: r.metadata?.latitude, lng: r.metadata?.longitude,
+      formatted: `${r.delivery_line_1}, ${r.last_line}`,
+      type: r.metadata?.precision || 'unknown',
+      rooftop: r.metadata?.precision === 'Rooftop'
+    };
+  }
+  return null;
+}
+
+async function autoRegeocode(parsed, cfg) {
+  const addr = parsed.address || '176 E 92nd St, Brooklyn, NY 11212';
+  const results = [];
+
+  // 并行调用所有可用图商
+  const promises = [];
+  if (cfg.googleKey) promises.push(callGoogleGeocode(addr).then(r => { if (r) results.push(r); }).catch(() => {}));
+  if (cfg.hereKey) promises.push(callHereGeocode(addr).then(r => { if (r) results.push(r); }).catch(() => {}));
+  if (cfg.smartyId) promises.push(callSmartyGeocode(addr).then(r => { if (r) results.push(r); }).catch(() => {}));
+
+  if (promises.length === 0) {
+    // 无图商可用，返回模拟
+    return {
+      success: true, mode: 'simulated',
+      results: [
+        { provider: 'Google (模拟)', lat: 40.6689, lng: -73.9526, formatted: '176 E 92nd St, Brooklyn, NY 11212', type: 'ROOFTOP' },
+        { provider: 'HERE (模拟)', lat: 40.6687, lng: -73.9524, formatted: '176 E 92nd St, Brooklyn, NY 11212', type: 'houseNumber' }
+      ],
+      best: { provider: 'Google (模拟)', lat: 40.6689, lng: -73.9526, formatted: '176 E 92nd St, Brooklyn, NY 11212', type: 'ROOFTOP' }
+    };
+  }
+
+  await Promise.all(promises);
+
+  // 选择最优：优先 rooftop 精度
+  const best = results.find(r => r.rooftop) || results[0] || null;
+  return { success: true, mode: 'live', results, best };
+}
+
+// ============================================================
+// 操作执行函数
+// ============================================================
+function manualFixCoordinate(parsed) {
+  return new Promise(resolve => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({
+          success: true, mode: 'live',
+          lat: pos.coords.latitude, lng: pos.coords.longitude,
+          message: `已使用当前位置 (${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}) 更新地址坐标画像。`
+        }),
+        () => resolve({
+          success: true, mode: 'simulated',
+          lat: 40.6691, lng: -73.9523,
+          message: '已使用模拟坐标 (40.669100, -73.952300) 更新地址坐标画像。'
+        })
+      );
+    } else {
+      resolve({
+        success: true, mode: 'simulated',
+        lat: 40.6691, lng: -73.9523,
+        message: '已使用模拟坐标 (40.669100, -73.952300) 更新地址坐标画像。'
+      });
+    }
+  });
+}
+
+function checkGateProfile(parsed) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        success: true, mode: 'simulated',
+        found: false,
+        message: '该地址画像暂无门禁密码记录。建议联系收件人获取，或记录后可补全画像。'
+      });
+    }, 600);
+  });
+}
+
+function findNearbyLocker(parsed) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        success: true, mode: 'simulated',
+        lockers: [
+          { name: 'Amazon Hub Locker - Vista', distance: '180m', address: '210 E 95th St, Brooklyn' },
+          { name: 'UPS Access Point', distance: '350m', address: '1569 3rd Ave, New York' }
+        ],
+        message: '找到 2 个附近快递柜/代收点。'
+      });
+    }, 500);
+  });
+}
+
+function contactCustomer(parsed) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        success: true, mode: 'simulated',
+        message: '已向收件人发送自动短信询问门禁信息，预计 2 分钟内回复。'
+      });
+    }, 400);
+  });
+}
+
+function fillAndSaveApt(parsed) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        success: true, mode: 'simulated',
+        message: '请在下方输入收件人提供的房间号：',
+        needsInput: true, inputLabel: '房间号 (Apt/Unit/Suite)'
+      });
+    }, 500);
+  });
+}
+
+function checkBusinessHours(parsed) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const now = new Date();
+      const hour = now.getHours();
+      resolve({
+        success: true, mode: 'simulated',
+        found: true,
+        hours: 'Mon-Fri 9:00-18:00',
+        message: `画像记录营业时间：周一至周五 9:00-18:00。当前时间 ${hour}:${now.getMinutes().toString().padStart(2,'0')}，${hour >= 18 ? '已过营业时间' : '仍在营业时间内'}。`
+      });
+    }, 600);
+  });
+}
+
+function updateBusinessHours(parsed) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        success: true, mode: 'simulated',
+        message: '已记录当前时间为"不可派送"时段，系统将自动学习该地址的可用时间窗口。'
+      });
+    }, 500);
+  });
+}
+
+function quickReportIssue(parsed, scenario) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        success: true, mode: 'simulated',
+        message: `已标记为"${SCENARIOS[scenario].label}"问题，加入画像修正队列，后台将异步处理。`
+      });
+    }, 300);
+  });
+}
+
+// ============================================================
+// UI 渲染
+// ============================================================
+let isProcessing = false;
+
+function addMsg(type, html) {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = `msg ${type}`;
+  div.innerHTML = html;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'typing'; div.id = 'typingIndicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function addDiagCard(scenario, parsed) {
+  const s = SCENARIOS[scenario];
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'diag-card';
+  div.innerHTML = `
+    <div class="diag-header" style="background:${s.color}">
+      <span class="diag-icon">${s.icon}</span>
+      <div>
+        <div>${s.label}</div>
+        <div style="font-size:10px;font-weight:400;opacity:.8;">置信度 ${Math.round(parsed.confidence * 100)}%</div>
+      </div>
+    </div>
+    <div class="diag-body">${s.summary(parsed)}</div>
+  `;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function addActionButtons(scenario, parsed) {
+  const s = SCENARIOS[scenario];
+  const area = document.getElementById('chatArea');
+  const container = document.createElement('div');
+  container.className = 'action-btns';
+
+  s.actions(parsed).forEach(action => {
+    const btn = document.createElement('button');
+    btn.className = 'action-btn';
+    btn.innerHTML = `
+      <span class="ab-icon">${action.icon}</span>
+      <span class="ab-content">
+        <span class="ab-title">${action.title}</span>
+        <span class="ab-desc">${action.desc}</span>
+      </span>
+      <span class="ab-badge ${action.badgeClass}">${action.badge}</span>
+    `;
+    btn.onclick = async () => {
+      // 禁用所有按钮
+      container.querySelectorAll('button').forEach(b => b.disabled = true);
+      btn.style.borderColor = 'var(--primary)';
+      btn.style.background = 'var(--primary-light)';
+
+      addTyping();
+      try {
+        const result = await action.exec(parsed, config);
+        removeTyping();
+        addExecResult(result, action.title);
+      } catch (e) {
+        removeTyping();
+        addExecResult({ success: false, message: `执行失败: ${e.message}` }, action.title);
+      }
+    };
+    container.appendChild(btn);
+  });
+
+  area.appendChild(container);
+  area.scrollTop = area.scrollHeight;
+}
+
+function addExecResult(result, actionName) {
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = `exec-result ${result.success ? 'success' : 'warning'}`;
+
+  let html = `<strong>${result.success ? '✓' : '✗'} ${actionName}</strong><br>${result.message}`;
+
+  // 图商结果展示
+  if (result.results && result.results.length > 0) {
+    html += '<div style="margin-top:8px;font-size:11px;">';
+    result.results.forEach(r => {
+      html += `<div style="padding:4px 0;border-bottom:1px solid #e5e7eb;">${r.provider}: (${r.lat}, ${r.lng}) · ${r.formatted} · ${r.type || ''}</div>`;
+    });
+    html += '</div>';
+    if (result.best) {
+      html += `<div style="margin-top:6px;font-weight:600;color:#166534;">最优结果: ${result.best.provider} (${result.best.lat}, ${result.best.lng}) — 已更新地址画像 ✓</div>`;
+    }
+  }
+
+  // 快递柜列表
+  if (result.lockers) {
+    html += '<div style="margin-top:8px;font-size:11px;">';
+    result.lockers.forEach(l => {
+      html += `<div style="padding:4px 0;border-bottom:1px solid #e5e7eb;">📦 ${l.name} · ${l.distance} · ${l.address}</div>`;
+    });
+    html += '</div>';
+  }
+
+  // 需要输入
+  if (result.needsInput) {
+    html += `<div style="margin-top:8px;display:flex;gap:6px;">
+      <input id="aptInput" type="text" placeholder="${result.inputLabel}" style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:12px;">
+      <button onclick="submitApt()" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;">确认入库</button>
+    </div>`;
+  }
+
+  div.innerHTML = html;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+
+  // 把 input 事件绑定延后
+  if (result.needsInput) {
+    setTimeout(() => {
+      const inp = document.getElementById('aptInput');
+      if (inp) {
+        inp.onkeydown = (e) => { if (e.key === 'Enter') submitApt(); };
+      }
+    }, 100);
+  }
+}
+
+function submitApt() {
+  const inp = document.getElementById('aptInput');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.disabled = true;
+  inp.nextElementSibling.disabled = true;
+
+  const area = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'exec-result success';
+  div.innerHTML = `<strong>✓ 房间号已补全</strong><br>地址更新为：176 E 92nd St, <strong>Apt ${val}</strong>, Brooklyn, NY 11212<br>已写入经验地址库，下次同一地址将直接命中 ✓`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ============================================================
+// 主流程
+// ============================================================
+async function processMessage(text) {
+  if (isProcessing) return;
+  isProcessing = true;
+
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('userInput').disabled = true;
+
+  addMsg('user', text);
+  addTyping();
+
+  let parsed;
+  try {
+    if (config.openaiKey) {
+      parsed = await openaiClassify(text);
+    } else {
+      await new Promise(r => setTimeout(r, 600));
+      parsed = localClassify(text);
+    }
+  } catch (e) {
+    parsed = localClassify(text);
+  }
+
+  removeTyping();
+
+  // AI 回复
+  const s = SCENARIOS[parsed.scenario] || SCENARIOS.gps_mismatch;
+  addMsg('bot', `识别到 <strong>${s.label}</strong> 问题。请选择以下操作方案：`);
+
+  // 诊断卡片
+  addDiagCard(parsed.scenario, parsed);
+
+  // 操作按钮
+  addActionButtons(parsed.scenario, parsed);
+
+  isProcessing = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('userInput').disabled = false;
+  document.getElementById('userInput').focus();
+}
+
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  processMessage(text);
+}
+
+function quickReport(text) {
+  processMessage(text);
+}
+</script>
+</body>
+</html>
